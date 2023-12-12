@@ -148,7 +148,7 @@ def main():
         # Mapeo de estaciones a sus respectivas columnas de fecha
         operations = {
             'Elegibilidad - Vigencia': ('FechaVigencia', 'FechaElegibilidad'),
-            'Primer Desembolso - Elegibilidad': ('FechaElegibilidad', 'FechaEfectiva'),
+            'PrimerDesembolso - Elegibilidad': ('FechaElegibilidad', 'FechaEfectiva'),
             'Vigencia - Aprobación': ('APROBACIÓN','FechaVigencia'),
             'Aprobación - Carta Consulta': ('CARTA CONSULTA', 'APROBACIÓN')
         }
@@ -209,8 +209,8 @@ def main():
         selected_years = st.slider('Selecciona el rango de años:', min_year, max_year, (min_year, max_year))
 
         # Filtro por estación con opción "Todas"
-        all_stations = ['Todas'] + list(results_df['ESTACIONES'].dropna().unique())
-        selected_station = st.selectbox('Selecciona una Estación', all_stations)
+        all_station = ['Todas'] + list(results_df['ESTACIONES'].dropna().unique())
+        selected_station = st.selectbox('Selecciona un Estación', all_station)
 
         # Aplicar filtros al DataFrame
         filtered_df = results_df[
@@ -218,7 +218,7 @@ def main():
             (results_df['ANO'] <= selected_years[1])
         ]
         if selected_station != 'Todas':
-            filtered_df = filtered_df[filtered_df['ESTACIONES'].str.contains(selected_station)]
+            filtered_df = filtered_df[filtered_df['ESTACIONES'] == selected_station]
 
         # Filtrar los datos insuficientes para el gráfico de conteo de productividad
         filtered_df = filtered_df[filtered_df['Productividad'] != "Datos insuficientes"]
@@ -288,15 +288,14 @@ def main():
             st.pyplot(fig)
 
         # Reemplazamos el gráfico de "Tiempo de Respuesta a lo largo del tiempo" por el gráfico de barras apiladas
-        st.subheader("Tiempo Promedio por Año y País")
+        st.subheader("Tiempo Promedio por Año y Estaciones")
 
         # Definir la paleta de colores para los países
-        country_colors = {
-            "ARGENTINA": "#36A9E1",
-            "BOLIVIA": "#F39200",
-            "BRASIL": "#009640",
-            "PARAGUAY": "#E30613",
-            "URUGUAY": "#27348B"
+        station_colors = {
+            "Vigencia": "#36A9E1",
+            "Aprobación": "#F39200",
+            "Elegibilidad": "#009640",
+            "PrimerDesembolso": "#E30613"
         }
 
         # Aplicar filtros al DataFrame
@@ -305,25 +304,26 @@ def main():
             (results_df['ANO'] <= selected_years[1])
         ]
         if selected_station != 'Todas':
-            filtered_df = filtered_df[filtered_df['ESTACIONES'].str.contains(selected_station)]
+    # Asegúrate de que este filtro sea coherente con lo que deseas (por estación o por país)
+            filtered_df = filtered_df[filtered_df['ESTACIONES'] == selected_station]
 
-        # Preparación de datos para el gráfico de barras apiladas
-        kpi_by_year_country = filtered_df.pivot_table(values='KPI', index='ANO', columns='PAIS', aggfunc='mean').fillna(0)
-        # Aseguramos que los años sean enteros y se muestren como tal en el eje X
-        kpi_by_year_country.index = kpi_by_year_country.index.map(int)
+        # Preparación de datos para el gráfico de barras apiladas por estaciones
+        kpi_by_year_station = filtered_df.pivot_table(values='KPI', index='ANO', columns='ESTACIONES', aggfunc='mean').fillna(0)
+        kpi_by_year_station.index = kpi_by_year_station.index.map(int)
 
         # Creamos una lista de colores basada en los países presentes en el DataFrame y en el orden correcto
-        colors = [country_colors.get(country, "#333333") for country in kpi_by_year_country.columns]
+        # Crear una lista de colores basada en las estaciones presentes en el DataFrame
+        colors = [station_colors.get(station, "#333333") for station in kpi_by_year_station.columns]
 
         # Gráfico de barras apiladas con colores específicos
         fig, ax = plt.subplots(figsize=(12, 6))
-        kpi_by_year_country.plot(kind='bar', stacked=True, color=colors, ax=ax)
+        kpi_by_year_station.plot(kind='bar', stacked=True, color=colors, ax=ax)
 
         # Agregar etiquetas de valor a cada segmento de barra
-        for i, (year, values) in enumerate(kpi_by_year_country.iterrows()):
+        for i, (year, values) in enumerate(kpi_by_year_station.iterrows()):
             height_accumulator = 0  # Acumulador para la altura de las barras
-            for country in values.index:
-                value = values[country]
+            for station in values.index:
+                value = values[station]
                 if value > 0:  # Solo agregamos etiquetas a valores positivos
                     label_y = height_accumulator + (value / 2)
                     ax.text(i, label_y, f'{int(value)}', ha='center', va='center', fontsize=9, color='white')
@@ -333,8 +333,8 @@ def main():
 
         ax.set_ylabel('KPI Promedio')
         ax.set_xlabel('Año')
-        ax.set_xticklabels([str(x) for x in kpi_by_year_country.index], rotation=0)
-        ax.legend(title='País', bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.set_xticklabels([str(x) for x in kpi_by_year_station.index], rotation=0)
+        ax.legend(title='Estación', bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.tight_layout()
         st.pyplot(fig)
 
@@ -352,7 +352,7 @@ def main():
         # Convertir las etiquetas de las columnas a enteros (los años)
         kpi_pivot_df.columns = kpi_pivot_df.columns.astype(int)
 
-        # Resetear el índice para llevar 'PAIS' a una columna
+        # Resetear el índice para llevar 'ESTACIONES' a una columna
         kpi_pivot_df.reset_index(inplace=True)
 
 
