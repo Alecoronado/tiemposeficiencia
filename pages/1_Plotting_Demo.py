@@ -168,7 +168,8 @@ def main():
                     'PAIS': row['Pais'],
                     'CODIGO': row['NoOperacion'],
                     'APODO': row['Alias'],
-                    'Indicador_Principal': row[end_col].strftime("%d/%m/%Y") if pd.notnull(row[end_col]) else None,
+                    'Indicador_Principal': row[end_col].strftime('%d/%m/%Y') if pd.notnull(row[end_col]) else None,
+                    'Indicador_Secundario': row[start_col].strftime('%d/%m/%Y') if pd.notnull(row[start_col]) else None,
                     'KPI': kpi,
                     'Productividad': productividad
                 })
@@ -209,20 +210,26 @@ def main():
         selected_years = st.slider('Selecciona el rango de años:', min_year, max_year, (min_year, max_year))
 
         # Filtro por estación con opción "Todas"
-        all_station = ['Todas'] + list(results_df['ESTACIONES'].dropna().unique())
-        selected_station = st.selectbox('Selecciona un Estación', all_station)
+        all_stations = ['Todas'] + list(results_df['ESTACIONES'].dropna())
+        selected_station = st.selectbox('Selecciona una Estación', all_stations)
+
+        # Filtro por país con opción "Todos"
+        all_countries = ['Todos'] + list(results_df['PAIS'].dropna())
+        selected_country = st.selectbox('Selecciona un País', all_countries)
 
         # Aplicar filtros al DataFrame
         filtered_df = results_df[
             (results_df['ANO'] >= selected_years[0]) &
             (results_df['ANO'] <= selected_years[1])
         ]
+
         if selected_station != 'Todas':
             filtered_df = filtered_df[filtered_df['ESTACIONES'] == selected_station]
 
-        # Filtrar los datos insuficientes para el gráfico de conteo de productividad
-        filtered_df = filtered_df[filtered_df['Productividad'] != "Datos insuficientes"]
+        if selected_country != 'Todos':
+            filtered_df = filtered_df[filtered_df['PAIS'] == selected_country]
 
+    
         # Incluir gráficos
         st.header("         Análisis de la Eficiencia Operativa")
         figsize = (7, 5)  # Definir el tamaño de la figura para los gráficos
@@ -230,7 +237,7 @@ def main():
         # Cálculo de KPI Promedio y conteo de operaciones únicas
         average_kpi = filtered_df['KPI'].mean()
         unique_operation_count = filtered_df['CODIGO'].nunique()  # Usamos nunique() para contar códigos únicos
-        total_stations = len(filtered_df)  # Conteo total de estaciones (filas)
+        total_stations = filtered_df['ESTACIONES'].count()  # Conteo total de estaciones (filas)
 
         # Mostrar métricas de KPI Promedio, conteo de operaciones únicas y total de estaciones
         col1, col2, col3 = st.columns(3)
@@ -303,9 +310,12 @@ def main():
             (results_df['ANO'] >= selected_years[0]) &
             (results_df['ANO'] <= selected_years[1])
         ]
+
         if selected_station != 'Todas':
-    # Asegúrate de que este filtro sea coherente con lo que deseas (por estación o por país)
             filtered_df = filtered_df[filtered_df['ESTACIONES'] == selected_station]
+
+        if selected_country != 'Todos':
+            filtered_df = filtered_df[filtered_df['PAIS'] == selected_country]
 
         # Preparación de datos para el gráfico de barras apiladas por estaciones
         kpi_by_year_station = filtered_df.pivot_table(values='KPI', index='ANO', columns='ESTACIONES', aggfunc='mean').fillna(0)
