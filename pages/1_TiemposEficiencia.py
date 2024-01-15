@@ -214,8 +214,8 @@ def main():
         selected_station = st.selectbox('Selecciona una Estación', all_stations)
 
         # Filtro por país con opción "Todos"
-        all_countries = ['Todos'] + list(results_df['PAIS'].dropna())
-        selected_country = st.selectbox('Selecciona un País', all_countries)
+        all_countries = ['Todos'] + list(results_df['PAIS'].dropna().unique())
+        selected_countries = st.multiselect('Selecciona Países', all_countries, default='Todos')
 
         # Aplicar filtros al DataFrame
         filtered_df = results_df[
@@ -226,9 +226,9 @@ def main():
         if selected_station != 'Todas':
             filtered_df = filtered_df[filtered_df['ESTACIONES'] == selected_station]
 
-        if selected_country != 'Todos':
-            filtered_df = filtered_df[filtered_df['PAIS'] == selected_country]
-
+        # Modificado para manejar múltiples selecciones de países
+        if 'Todos' not in selected_countries:
+            filtered_df = filtered_df[filtered_df['PAIS'].isin(selected_countries)]
     
         # Incluir gráficos
         st.header("         Análisis de la Eficiencia Operativa")
@@ -314,9 +314,10 @@ def main():
         if selected_station != 'Todas':
             filtered_df = filtered_df[filtered_df['ESTACIONES'] == selected_station]
 
-        if selected_country != 'Todos':
-            filtered_df = filtered_df[filtered_df['PAIS'] == selected_country]
-
+        # Modificado para manejar múltiples selecciones de países
+        if 'Todos' not in selected_countries:
+            filtered_df = filtered_df[filtered_df['PAIS'].isin(selected_countries)]
+    
         # Preparación de datos para el gráfico de barras apiladas por estaciones
         kpi_by_year_station = filtered_df.pivot_table(values='KPI', index='ANO', columns='ESTACIONES', aggfunc='mean').fillna(0)
         kpi_by_year_station.index = kpi_by_year_station.index.map(int)
